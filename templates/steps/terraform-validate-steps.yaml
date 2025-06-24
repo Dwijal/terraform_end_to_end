@@ -1,0 +1,57 @@
+steps:
+- task: Bash@3
+  displayName: 'Install tflint'
+  retryCountOnTaskFailure: 3
+  inputs:
+    targetType: 'inline'
+    script: |
+      ls -al /tmp/
+      curl -s https://raw.githubusercontent.com/terraform-linters/tflint/master/install_linux.sh | bash
+
+- task: Bash@3
+  displayName: 'Install tfsec'
+  inputs:
+    targetType: 'inline'
+    script: |
+      curl -s https://raw.githubusercontent.com/aquasecurity/tfsec/master/scripts/install_linux.sh | bash
+
+- task: Bash@3
+  displayName: 'Install CheckOv'
+  inputs:
+    targetType: 'inline'
+    script: |
+      sudo python3 -m pip install -U checkov
+
+- task: Bash@3
+  displayName: 'Run tflint'
+  continueOnError: true
+  inputs:
+    targetType: 'inline'
+    script: |
+      tflint --init ./.tflint.hcl
+      tflint --version
+      for d in ./environments/* ; do tflint --chdir="$d" --disable-rule=terraform_required_version --disable-rule=terraform_required_providers ; done 
+      for d in ./modules/* ; do tflint --chdir="$d" --disable-rule=terraform_required_version --disable-rule=terraform_required_providers ; done       
+
+- task: Bash@3
+  displayName: 'Run tfsec'
+  continueOnError: true
+  inputs:
+    targetType: 'inline'
+    script: |
+      for d in ./environments/* ; do echo $d ; tfsec "$d" ; done 
+      for d in ./modules/* ; do echo $d ; tfsec "$d" ; done 
+
+- task: Bash@3
+  displayName: 'Run CheckOv'
+  continueOnError: true
+  inputs:
+    targetType: 'inline'
+    script: checkov -d .
+    workingDirectory: /modules
+
+- task: TerraformTaskV1@0
+  displayName: 'Run TF Validate'
+  inputs:
+    provider: 'azurerm'
+    command: 'validate'
