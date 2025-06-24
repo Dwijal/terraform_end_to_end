@@ -1,0 +1,41 @@
+name: $(Build.BuildId)
+
+trigger:
+  branches: 
+    include: 
+    - master
+    - release/*
+    exclude: 
+    - features/*
+
+pool:
+  name: 'dwipool'
+  demands:
+    - agent.name -equals dwiagent
+
+variables:
+  ## Variable group from pipelines library
+  - group: TMS-Shared
+  - name: agentPool
+    value: 'dwipool'
+  - name: environment
+    value: 'T'
+  - name: location
+    value: 'westeurope'
+  - name: region
+    value: 'weu'
+  - name: resourceGroupName
+    value: 'oracle-rg'
+  - name: storageAccountName
+    value: 'dwitfstatestorageaccount'
+  - name: subscription    
+    value: 'Azure subscription 1'   
+
+stages:
+- stage: Terraform_Validate
+  jobs:
+  - job: "Validate_TF"
+    displayName: 'Validate TF Plan'   
+    steps:
+    - checkout: self
+    - template: templates/steps/terraform-validate-steps.yml
